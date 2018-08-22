@@ -1,20 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strconv"
 )
 
 // しょうせつ
 type Novel struct {
 	text string
+	rows []string
 }
 
 // もじすうかぞえまん
 type Counter struct {
-	novel     Novel
+	novel     *Novel
 	countChar string
 }
 
@@ -22,6 +22,34 @@ type Counter struct {
 type CounthArgs struct {
 	filePath  string
 	countChar string
+}
+
+// constractor Novel
+func NewNovel(path string) *Novel {
+	n := new(Novel)
+
+	text, t := "", ""
+
+	fp, err := os.Open(path)
+	if err != nil {
+		//    panic(err)
+		fmt.Printf("ファイルがよめないよ！")
+		os.Exit(1)
+	}
+	defer fp.Close()
+
+	scanner := bufio.NewScanner(fp)
+	for scanner.Scan() {
+		t = scanner.Text()
+		n.rows = append(n.rows, t)
+		text += t
+	}
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+	n.text = text
+
+	return n
 }
 
 // constractor ConthArgs
@@ -59,22 +87,28 @@ func (c Counter) CountCharInText(text string) int {
 
 // もじれつのなかの指定文字を全部数えるやつ
 func (c Counter) CountAll() int {
-	// TODO: row char count & avg
 	return c.CountCharInText(c.novel.text)
+}
+
+// 行の中の平均をとるやつ
+func (c Counter) AvgRows() float64 {
+	rowLen := len(c.novel.rows)
+	countAll := 0
+	// MWMO;
+	for i := 0; i < rowLen; i++ {
+		countAll += c.CountCharInText(c.novel.rows[i])
+	}
+
+	return float64(countAll) / float64(rowLen)
 }
 
 func main() {
 	args := NewCounthArgs(os.Args)
 
-	dat, err := ioutil.ReadFile(args.filePath)
-	if err != nil {
-		fmt.Printf("ファイルがよめないよ！")
-		os.Exit(1)
-	}
-	text := string(dat)
-
-	novel := Novel{text}
+	novel := NewNovel(args.filePath)
 	counter := Counter{novel, args.countChar}
 
-	fmt.Printf("ぜんぶで " + strconv.Itoa(counter.CountAll()) + " 回だよ♡")
+	// TODO: Printf %v
+	fmt.Printf("ぜんぶで %d 回だよ♡\n", counter.CountAll())
+	fmt.Printf("1行あたりだいたい %.2f 回だよ♡", counter.AvgRows())
 }
